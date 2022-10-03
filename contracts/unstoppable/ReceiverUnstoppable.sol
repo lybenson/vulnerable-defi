@@ -21,11 +21,13 @@ contract ReceiverUnstoppable {
 
     // Pool will call this function during the flash loan
     function receiveTokens(address tokenAddress, uint256 amount) external {
+        // 确保该方法的调用者是 pool 地址
         require(msg.sender == address(pool), "Sender must be pool");
-        // Return all tokens to the pool
+        // 返还 token 到 msg.sender
         require(IERC20(tokenAddress).transfer(msg.sender, amount), "Transfer of tokens failed");
     }
 
+    // 执行闪电贷
     function executeFlashLoan(uint256 amount) external {
         require(msg.sender == owner, "Only owner can execute flash loan");
         pool.flashLoan(amount);
