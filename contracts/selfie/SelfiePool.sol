@@ -27,6 +27,7 @@ contract SelfiePool is ReentrancyGuard {
         _;
     }
 
+    // 构造函数: 创建 token 和 governance 实例
     constructor(address tokenAddress, address governanceAddress) {
         token = ERC20Snapshot(tokenAddress);
         governance = SimpleGovernance(governanceAddress);
@@ -58,7 +59,7 @@ contract SelfiePool is ReentrancyGuard {
         require(balanceAfter >= balanceBefore, "Flash loan hasn't been paid back");
     }
 
-    // 提取该合约中的全部token, 并且智能由 governance 调用
+    // 提取该合约中的全部token, 并且只能由 governance 调用
     function drainAllFunds(address receiver) external onlyGovernance {
         // 获取余额
         uint256 amount = token.balanceOf(address(this));

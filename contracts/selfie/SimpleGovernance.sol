@@ -36,12 +36,15 @@ contract SimpleGovernance {
         actionCounter = 1;
     }
 
+    // 创建一个 action
     function queueAction(address receiver, bytes calldata data, uint256 weiAmount) external returns (uint256) {
+        // 确保有足够的投票
         require(_hasEnoughVotes(msg.sender), "Not enough votes to propose an action");
+        // 确保 reveiver 不能是该合约
         require(receiver != address(this), "Cannot queue actions that affect Governance");
 
+        // 将 action 保存到 actions 中
         uint256 actionId = actionCounter;
-
         GovernanceAction storage actionToQueue = actions[actionId];
         actionToQueue.receiver = receiver;
         actionToQueue.weiAmount = weiAmount;
@@ -51,15 +54,22 @@ contract SimpleGovernance {
         actionCounter++;
 
         emit ActionQueued(actionId, msg.sender);
+
+        // 返回 actionId
         return actionId;
     }
 
+    // 执行创建的 action
     function executeAction(uint256 actionId) external payable {
+        // 创建的 action 是否可以被执行
         require(_canBeExecuted(actionId), "Cannot execute this action");
         
+        // 取出当前最新的待执行的 action
         GovernanceAction storage actionToExecute = actions[actionId];
+        // 设置执行时间为当前时间
         actionToExecute.executedAt = block.timestamp;
 
+        // 执行 action.reveiver 的 data
         actionToExecute.receiver.functionCallWithValue(
             actionToExecute.data,
             actionToExecute.weiAmount
@@ -77,6 +87,9 @@ contract SimpleGovernance {
      * 1) it's never been executed before and
      * 2) enough time has passed since it was first proposed
      */
+    //  判断一个 action 是否可以被执行
+    // 1. 从来没有执行过
+    // 2. 创建时间超过 2 days
     function _canBeExecuted(uint256 actionId) private view returns (bool) {
         GovernanceAction memory actionToExecute = actions[actionId];
         return (
@@ -84,7 +97,9 @@ contract SimpleGovernance {
             (block.timestamp - actionToExecute.proposedAt >= ACTION_DELAY_IN_SECONDS)
         );
     }
-    
+
+    // 判断是否有足够的投票
+    // 拥有的 governanceToken 数量大于总量的一半
     function _hasEnoughVotes(address account) private view returns (bool) {
         uint256 balance = governanceToken.getBalanceAtLastSnapshot(account);
         uint256 halfTotalSupply = governanceToken.getTotalSupplyAtLastSnapshot() / 2;
