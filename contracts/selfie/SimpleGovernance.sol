@@ -29,12 +29,13 @@ contract SimpleGovernance {
     event ActionQueued(uint256 actionId, address indexed caller);
     event ActionExecuted(uint256 actionId, address indexed caller);
 
+    // 构造函数, 传入治理 token 地址
     constructor(address governanceTokenAddress) {
         require(governanceTokenAddress != address(0), "Governance token cannot be zero address");
         governanceToken = DamnValuableTokenSnapshot(governanceTokenAddress);
         actionCounter = 1;
     }
-    
+
     function queueAction(address receiver, bytes calldata data, uint256 weiAmount) external returns (uint256) {
         require(_hasEnoughVotes(msg.sender), "Not enough votes to propose an action");
         require(receiver != address(this), "Cannot queue actions that affect Governance");
