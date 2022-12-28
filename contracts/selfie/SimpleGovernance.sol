@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 contract SimpleGovernance {
 
     using Address for address;
-    
+
     struct GovernanceAction {
         address receiver;
         bytes data;
@@ -19,10 +19,11 @@ contract SimpleGovernance {
         uint256 proposedAt;
         uint256 executedAt;
     }
-    
+    // 治理 token
     DamnValuableTokenSnapshot public governanceToken;
-
+    // 存储所有 action 的 mapping
     mapping(uint256 => GovernanceAction) public actions;
+    // action 计数
     uint256 private actionCounter;
     uint256 private ACTION_DELAY_IN_SECONDS = 2 days;
 
