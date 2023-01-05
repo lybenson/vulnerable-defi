@@ -50,22 +50,23 @@ describe('[Challenge] Puppet', function () {
     this.uniswapFactory = await UniswapFactoryFactory.deploy()
     await this.uniswapFactory.initializeFactory(this.exchangeTemplate.address)
 
-    // Create a new exchange for the token, and retrieve the deployed exchange's address
+    // 创建 uniswap 配对合约 ETH-DVT
     const tx = await this.uniswapFactory.createExchange(this.token.address, { gasLimit: 1e6 })
     const { events } = await tx.wait()
     this.uniswapExchange = await UniswapExchangeFactory.attach(events[0].args.exchange)
 
-    // Deploy the lending pool
+    // 部署借贷池合约
     this.lendingPool = await PuppetPoolFactory.deploy(
       this.token.address,
       this.uniswapExchange.address
     )
 
-    // Add initial token and ETH liquidity to the pool
+    // 授权配对合约可以操纵的token数量
     await this.token.approve(
       this.uniswapExchange.address,
       UNISWAP_INITIAL_TOKEN_RESERVE
     )
+    // 添加流动性
     await this.uniswapExchange.addLiquidity(
       0, // min_liquidity
       UNISWAP_INITIAL_TOKEN_RESERVE,
@@ -103,6 +104,10 @@ describe('[Challenge] Puppet', function () {
 
   it('Exploit', async function () {
     /** CODE YOUR EXPLOIT HERE */
+
+    const attackerLendingPool = this.lendingPool.connect(attacker)
+    const attackerToken = this.token.connect(attacker)
+    const attackerUniswap = this.uniswapExchange.connect(attacker)
   })
 
   after(async function () {
