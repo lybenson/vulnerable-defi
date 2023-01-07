@@ -55,7 +55,7 @@ contract PuppetPool is ReentrancyGuard {
     }
 
     // 计算每个token的价值等同于多少eth
-    // 初始 uniswapPair 中有 10ETH 和 10 DVT => 每个DVT的价值 = 1 eth
+    // 初始 uniswapPair 中有 100ETH 和 10 DVT => 每个DVT的价值 = 10 eth
     // 每个token的价值 = eth余额 / token余额
     function _computeOraclePrice() private view returns (uint256) {
         // calculates the price of the token in wei according to Uniswap pair

