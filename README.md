@@ -7,3 +7,4 @@
 - [x] [The Rewarder](https://www.lybenson.com/article/2022/12/13/defi-hack-5-the-rewarder/)
 - [x] [Selfie](https://www.lybenson.com/article/2022/12/28/defi-hack-6-selfie/)
 - [x] [Compromised](https://www.lybenson.com/article/2023/01/02/defi-hack-7-compromised/)
+- [x] [Puppet](https://www.lybenson.com/article/2023/01/04/defi-hack-8-Puppet/)
