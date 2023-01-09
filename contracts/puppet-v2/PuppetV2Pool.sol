@@ -46,29 +46,35 @@ contract PuppetV2Pool {
     function borrow(uint256 borrowAmount) external {
         require(_token.balanceOf(address(this)) >= borrowAmount, "Not enough token balance");
 
-        // Calculate how much WETH the user must deposit
+        // 计算需要存多少WETH
         uint256 depositOfWETHRequired = calculateDepositOfWETHRequired(borrowAmount);
         
-        // Take the WETH
+        // 转WETH到该合约中
         _weth.transferFrom(msg.sender, address(this), depositOfWETHRequired);
 
-        // internal accounting
+        // 记录存入的WETH
         deposits[msg.sender] += depositOfWETHRequired;
 
+        // 将 DVT token 转给 msg.sender
         require(_token.transfer(msg.sender, borrowAmount));
 
         emit Borrowed(msg.sender, depositOfWETHRequired, borrowAmount, block.timestamp);
     }
 
     function calculateDepositOfWETHRequired(uint256 tokenAmount) public view returns (uint256) {
+        // 抵押物的价值是3倍于借出的DVT
         return _getOracleQuote(tokenAmount).mul(3) / (10 ** 18);
     }
 
-    // Fetch the price from Uniswap v2 using the official libraries
     function _getOracleQuote(uint256 amount) private view returns (uint256) {
+        // 获取 WETH 和 DVT 的储备量
+        // getReserves 内部计算配对合约的地址，并返回配对的 Token 的储备量
         (uint256 reservesWETH, uint256 reservesToken) = UniswapV2Library.getReserves(
             _uniswapFactory, address(_weth), address(_token)
         );
+        // 计算DVT的价值
+        // amount / x = reservesToken / reservesWETH
+        // x = (amount * reservesWETH) / reservesToken
         return UniswapV2Library.quote(amount.mul(10 ** 18), reservesToken, reservesWETH);
     }
 }
